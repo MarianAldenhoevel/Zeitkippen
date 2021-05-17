@@ -56,6 +56,15 @@ parser.add_argument('-sf', '--save-frames',
     metavar = 'flag'
   )
 
+parser.add_argument('-sv', '--save-video',
+    action = 'store',
+    default = False,
+    type = str2bool,
+    help = 'Save videos in MP4-format (default: %(default)s)',
+    dest = 'savevideo',
+    metavar = 'flag'
+  )
+
 args = parser.parse_args()
 
 args.inputfile = os.path.abspath(args.inputfile)
@@ -93,11 +102,13 @@ logger.info('Video format detected: width={0}pixel, height={1}pixel, {2} frames 
 # logger.debug(json.dumps(video_metadata, indent = 4))
 
 # Open input file as generator to read each frame in turn.
-inputparameters = {}
-outputparameters = {}
+FFmpegOutputparameters = {
+}
+
 reader = skvideo.io.FFmpegReader(args.inputfile,
-    inputdict=inputparameters,
-    outputdict=outputparameters)
+    inputdict={},
+    outputdict={}
+)
 
 # Create folders for exported images and videos. They will be created next to the input video with fixed names.
 outputfolder = os.path.dirname(args.inputfile)
@@ -115,11 +126,16 @@ if not os.path.exists(ytfolder):
     os.makedirs(ytfolder)
 
 try:
+    # Get dimensions.
+    videox = int(video_metadata['video']['@width']) // 2 * 2
+    videoy = int(video_metadata['video']['@height']) // 2 * 2
+    videot = int(video_metadata['video']['@nb_frames']) // 2 *2 
+
     # Initialize array of all the pixels of the video.
     frames = numpy.empty((
-        int(video_metadata['video']['@nb_frames']),
-        int(video_metadata['video']['@height']),
-        int(video_metadata['video']['@width']),
+        int(videot),
+        int(videoy),
+        int(videox),
         3),
         dtype='uint8'
     )
@@ -130,16 +146,19 @@ try:
         if (frame_index%100 == 0):
             logger.debug('Reading frame #{0}.'.format(frame_index))
         
-        # Save xy-Frame (normal)
-        #image = Image.fromarray(frame)
-        #image.save(xyfolder + '\\{0:04d}.png'.format(frame_index))
-        frames[frame_index] = frame
-        frame_index = frame_index + 1
+        # Possibly drop last frame if odd number in video.
+        if (frame_index < videot):
+            frames[frame_index] = frame
+            frame_index = frame_index + 1
 
     logger.info('Read {0} frames.'.format(frame_index))
 
     # This should recreate the original frames and video
-    writer = skvideo.io.FFmpegWriter(outputfolder+'\\xy.mp4')
+    if args.savevideo:
+        writer = skvideo.io.FFmpegWriter(
+            outputfolder + '\\xy.mp4',
+            outputdict = FFmpegOutputparameters
+        )        
     try:
         nframes = frames.shape[0]
         logger.info('Dumping {0} xy-frames.'.format(nframes))
@@ -160,11 +179,17 @@ try:
                 if (t == nframes-1):
                     image.save(xyfolder + '\\last.png')
 
-            writer.writeFrame(frame)
+            if args.savevideo:
+                writer.writeFrame(frame)
     finally:
-        writer.close()
+        if args.savevideo:
+            writer.close()
 
-    writer = skvideo.io.FFmpegWriter(outputfolder+'\\xt.mp4')
+    if args.savevideo:
+        writer = skvideo.io.FFmpegWriter(
+            outputfolder + '\\xt.mp4',
+            outputdict=FFmpegOutputparameters
+        )
     try:
         nframes = frames.shape[1]
         logger.info('Dumping {0} xt-frames.'.format(nframes))
@@ -185,11 +210,17 @@ try:
                 if (y == nframes-1):
                     image.save(xtfolder + '\\last.png')
 
-            writer.writeFrame(frame)
+            if args.savevideo:
+                writer.writeFrame(frame)
     finally:
-        writer.close()
+        if args.savevideo:
+            writer.close()
 
-    writer = skvideo.io.FFmpegWriter(outputfolder+'\\yt.mp4')
+    if args.savevideo:
+        writer = skvideo.io.FFmpegWriter(
+            outputfolder + '\\yt.mp4',
+            outputdict = FFmpegOutputparameters
+        )
     try:
         nframes = frames.shape[2]
         logger.info('Dumping {0} yt-frames.'.format(nframes))
@@ -210,9 +241,11 @@ try:
                 if (x == nframes-1):
                     image.save(ytfolder + '\\last.png')
 
-            writer.writeFrame(frame)
+            if args.savevideo:
+                writer.writeFrame(frame)
     finally:
-        writer.close()        
+        if args.savevideo:
+            writer.close()        
             
 finally:
     logger.info('Closing input file.')

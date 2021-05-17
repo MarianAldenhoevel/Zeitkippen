@@ -21,11 +21,19 @@
                 margin-right: auto;
             }
 
-            /*
-            div.loader {
-                display: none;
+            div.video {
+                width: 50%;
+                margin-top: 2em;
+                margin-left: auto;
+                margin-right: auto;
+                text-align: center;
+            }        
+
+            video {
+                width: auto;
+                margin: 0 auto;
+                display: block;
             }
-            */
 
             #loaderpane {
                 position: absolute;
@@ -86,9 +94,6 @@
             <div id="content">
                 <canvas id="three-canvas"></canvas>
                 <div id="controls">
-                    <div class="uirow" id="samples">
-                        <label class="fieldname">Beispiele:</label>
-                    </div>
                     <div class="uirow">
                         <label class="fieldname">Außenflächen anzeigen:</label>
                         
@@ -139,12 +144,46 @@
                 </div>
             </div>
         </div>
+        <div class="video">
+            <div>x-y:</div>
+            <video id="videoxy" controls muted>
+                Ihr Browser kann dieses Video nicht wiedergeben.
+            </video>
+        </div>
+        <div class="video">
+            <div>x-t</div>
+            <video id="videoxt" controls muted>
+                Ihr Browser kann dieses Video nicht wiedergeben.
+            </video>
+        </div>
+        <div class="video">
+            <div>y-t</div>
+            <video id="videoyt" controls muted>
+                Ihr Browser kann dieses Video nicht wiedergeben.
+            </video>
+        </div>
     </body>
 
 <script type="module">
     
 import * as THREE from 'https://cdn.skypack.dev/three';
 import OrbitControls from 'https://cdn.skypack.dev/threejs-orbit-controls';
+
+// Read the GET URL variables and return them as an associative array.
+function getUrlVars() {
+    var vars = {}
+
+    if (window.location.href.indexOf('?') != -1) { 
+        var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+        for (var i = 0; i < hashes.length; i++)
+        {
+            var hash = hashes[i].split('=');
+            vars[hash[0]] = decodeURI(hash[1]);
+        }
+    }
+
+    return vars;
+}
 
 var scene;
 var camera;
@@ -507,6 +546,10 @@ function loadCube(name) {
 
     basedir = 'data/' + name + '/';
     
+    $("#videoxy").attr('src', basedir + 'xy.mp4');
+    $("#videoxt").attr('src', basedir + 'xt.mp4');
+    $("#videoyt").attr('src', basedir + 'yt.mp4');
+
     // Set progress on the default loading manager to set up the outer
     // cube when the textures have loaded.
     THREE.DefaultLoadingManager.onLoad = buildCube;
@@ -742,11 +785,6 @@ function animate() {
 
 }
 
-function addSample(name) {
-    $('#samples').append("<button id=\"sample_" + name + "\">" + name + "</button>");
-    $('#sample_' + name).click(function() { loadCube(name); });
-}
-
 $(document).ready(function() {
     // Get the canvas we want to render on
     var canvas = document.querySelector('#three-canvas');
@@ -792,11 +830,16 @@ $(document).ready(function() {
     // Load a pretty scene background.
     new THREE.TextureLoader().load('background.png', function(texture) { scene.background = texture; }); 
 
-    addSample('Basketball');
-    addSample('Abstract');
-
     loadCube('Basketball');
 
+    var urlvars = getUrlVars();
+	if (urlvars.q) {
+		loadCube(urlvars.q)
+    }
+    else {
+        loadCube('Basketball');    
+    }
+	
     // start Animation by requesting first frame.
     // requestAnimationFrame(render);
 
