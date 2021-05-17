@@ -1,0 +1,832 @@
+<!-- Licensed under a BSD license. See license.html for license -->
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+        <title>Zeitkippen</title>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>	
+        <style>
+            body {
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: smaller;
+                background-color: black;
+                color: white;
+            }
+
+            #zeitkippen {
+                position: relative;
+                width: 50%;
+                margin-left: auto;
+                margin-right: auto;
+            }
+
+            /*
+            div.loader {
+                display: none;
+            }
+            */
+
+            #loaderpane {
+                position: absolute;
+                top: 0px;
+                right: 0px;
+                width: 100%;
+                height: 100%;
+                background-color: black;
+                z-index: 10000000;
+                opacity: 0.3;
+                filter: alpha(opacity=30);
+            }
+
+            #loadergif {
+                position: absolute;
+                top: 0px;
+                right: 0px;
+                width: 100%;
+                height: 100%;
+                background-color: transparent;
+                background-image: url('loader.gif');
+                background-repeat: no-repeat;
+                background-position: center;
+                background-size: 100px;
+                z-index: 10000001;                
+            }
+
+            #three-canvas {
+                width: 100%
+            }
+
+            .uirow {
+                display: flex;
+                align-items: center;
+                margin: 1em;
+            }
+
+            .uirow label.fieldname {
+                min-width: 15em;
+            }
+
+            .uirow label.slidervalue {
+                min-width: 3em;
+                text-align: right;
+            }
+
+            .uirow button {
+                width: 8em;
+                margin-right: 1em;
+            }
+
+        </style>
+    </head>
+    <body>
+        <div id='zeitkippen'>
+            <div class="loader" id="loaderpane"></div>
+            <div class="loader" id="loadergif"></div>
+            <div id="content">
+                <canvas id="three-canvas"></canvas>
+                <div id="controls">
+                    <div class="uirow" id="samples">
+                        <label class="fieldname">Beispiele:</label>
+                    </div>
+                    <div class="uirow">
+                        <label class="fieldname">Außenflächen anzeigen:</label>
+                        
+                        <input type="checkbox" id="checkbox_xy_visible" name="xy" checked></input>
+                        <label">x-y</label>
+                        
+                        <input type="checkbox" id="checkbox_xt_visible" name="xt" checked></input>
+                        <label>x-t</label>
+                    
+                        <input type="checkbox" id="checkbox_yt_visible" name="yt" checked></input>
+                        <label>y-t</label>
+                    </div>
+                    <div class="uirow">
+                        <label class="fieldname">Dekoration anzeigen:</label>
+                        
+                        <input type="checkbox" id="checkbox_axes" name="axes" checked></input>
+                        <label">Achsen</label>
+                        
+                        <input type="checkbox" id="checkbox_wireframe" name="wireframe" checked></input>
+                        <label>Rahmen</label>
+                    </div>
+                    <div class="uirow">
+                        <label class="fieldname">Außenflächen Transparenz:</label>
+                        <input type="range" min="0" max="90" value="70" class="slider" id="slider_transparenz">
+                        <label class="slidervalue" id="label_transparenz"></label>
+                    </div>
+                    <div class="uirow">
+                        <label class="fieldname">x-y:</label>
+                        <input type="range" min="0" max="100" value="0" class="slider" id="slider_xy">
+                        <label class="slidervalue" id="label_xy"></label>
+                        <input type="checkbox" id="checkbox_xy_animate" name="xy_animate" unchecked></input>
+                        <label>animieren</label>
+                    </div>
+                    <div class="uirow">
+                        <label class="fieldname">x-t:</label>
+                        <input type="range" min="0" max="100" value="0" class="slider" id="slider_xt">
+                        <label class="slidervalue" id="label_xt"></label>
+                        <input type="checkbox" id="checkbox_xt_animate" name="xt_animate" unchecked></input>
+                        <label>animieren</label>
+                    </div>
+                    <div class="uirow">
+                        <label class="fieldname">y-t:</label>
+                        <input type="range" min="0" max="100" value="0" class="slider" id="slider_yt">
+                        <label class="slidervalue" id="label_yt"></label>
+                        <input type="checkbox" id="checkbox_yt_animate" name="yt_animate" unchecked></input>
+                        <label>animieren</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+
+<script type="module">
+    
+import * as THREE from 'https://cdn.skypack.dev/three';
+import OrbitControls from 'https://cdn.skypack.dev/threejs-orbit-controls';
+
+var scene;
+var camera;
+var controls;
+var renderer;
+
+var renderRequested = false;
+
+var basedir;
+var cubedimensionspixel;
+var cubedimensions;
+var cubetextures;
+var cubematerials;
+var cube;
+
+var animationtimer;
+
+function makeArrow(length, color) {
+    // Creates an array starting at the origin pointing in the positive Y-direction (up).
+    var radius = 0.01;
+
+    var arrow = new THREE.Group();
+    var material = new THREE.MeshBasicMaterial({ color: color });
+    
+    var geometry = new THREE.CylinderGeometry(radius, radius, length);
+    var cylinder = new THREE.Mesh(geometry, material);
+    cylinder.position.y = length/2;
+    arrow.add(cylinder);
+
+    geometry = new THREE.ConeGeometry(3*radius, 10*radius);
+    var cone = new THREE.Mesh(geometry, material);
+    cone.position.y = length;
+    arrow.add(cone);
+
+    return arrow;
+}
+
+function updateTransparency() {
+    var v = $('#slider_transparenz').val()
+    var alpha = 100-v;            
+    if (cubematerials) {
+        for(var material in cubematerials) { 
+            cubematerials[material].transparent = (alpha<100);
+            cubematerials[material].opacity = (alpha/100.0);
+        }
+    }
+}
+
+function buildFrames() {
+    
+    // Reset the callback on the Loading Manager, we are done.
+    THREE.DefaultLoadingManager.onLoad = null;
+
+    var face;
+    var mesh;
+
+    // X-Y-Plane (Front to back)
+    cubematerials.xy = [];
+    var xyframes = new THREE.Group();
+    xyframes.name = 'xyframes';
+    xyframes.visible = false;
+    
+    var dz = cubedimensions.z/cubedimensionspixel.t;
+    var z = 0;
+    for(var frame=0; frame<cubedimensionspixel.t; frame++) {
+        cubematerials.xy.push(new THREE.MeshBasicMaterial({ map: cubetextures.xy[frame],  side: THREE.DoubleSide }))
+        face = new THREE.PlaneGeometry(cubedimensions.x, cubedimensions.y);
+        mesh = new THREE.Mesh(face, cubematerials.xy[frame]);
+        mesh.position.z = +cubedimensions.z/2 - z;
+        mesh.visible = false;
+        xyframes.add(mesh);
+
+        z = z+dz;
+    }
+
+    cube.add(xyframes);
+
+    // YT-Plane (Left to right)
+    cubematerials.yt = [];
+    var ytframes = new THREE.Group();
+    ytframes.name = 'ytframes';
+    ytframes.visible = false;
+    
+    var dx = cubedimensions.x/cubedimensionspixel.x;
+    var x = 0;
+    for(var frame=0; frame<cubedimensionspixel.x; frame++) {
+        cubematerials.yt.push(new THREE.MeshBasicMaterial({ map: cubetextures.yt[frame],  side: THREE.DoubleSide }))
+        face = new THREE.PlaneGeometry(cubedimensions.y, cubedimensions.t);
+        mesh = new THREE.Mesh(face, cubematerials.yt[frame]);
+        mesh.position.x = -cubedimensions.x/2 + x;
+        mesh.rotateZ(-Math.PI/2);
+        mesh.rotateX(+Math.PI/2);
+        mesh.visible = false;
+        ytframes.add(mesh);
+
+        x = x+dx;
+    }
+
+    cube.add(ytframes);
+
+    // XT-Plane (Top to bottom)
+    cubematerials.xt = [];
+    var xtframes = new THREE.Group();
+    xtframes.name = 'xtframes';
+    xtframes.visible = false;
+    
+    var dy = cubedimensions.y/cubedimensionspixel.y;
+    var y = 0;
+    for(var frame=0; frame<cubedimensionspixel.y; frame++) {
+        cubematerials.xt.push(new THREE.MeshBasicMaterial({ map: cubetextures.xt[frame],  side: THREE.DoubleSide }))
+        face = new THREE.PlaneGeometry(cubedimensions.x, cubedimensions.t);
+        mesh = new THREE.Mesh(face, cubematerials.xt[frame]);
+        mesh.position.y = +cubedimensions.y/2 - y;
+        mesh.rotateX(+Math.PI/2);
+        mesh.visible = false;
+        
+        xtframes.add(mesh);
+
+        y = y+dy;
+    }
+
+    cube.add(xtframes);
+
+    $('div.loader').hide();
+    
+}
+
+function buildCube() {
+    
+    clearTimeout(animationtimer);
+
+    // The dimensions of the cube are based on the dimensions of the
+    // texture images. We normalize the maximum component to 1.
+    cubedimensionspixel = new THREE.Vector3(
+        Math.max(cubetextures.front.image.width, cubetextures.back.image.width),
+        Math.max(cubetextures.left.image.width,  cubetextures.right.image.width),
+        Math.max(cubetextures.top.image.height,  cubetextures.bottom.image.height)
+    )
+    cubedimensionspixel.t = cubedimensionspixel.z; // Convenience.
+
+    // Deactivate animation and set up sliders for the planes to reflect the new dimensions
+    $('#checkbox_xy_animate').prop('checked', false);
+    $('#slider_xy').val(0);
+    $('#slider_xy').prop('max', cubedimensionspixel.t-1);
+    $('#label_xy').text('');
+
+    $('#checkbox_yt_animate').prop('checked', false);
+    $('#slider_yt').val(0);
+    $('#slider_yt').prop('max', cubedimensionspixel.x-1);
+    $('#label_yt').text('');
+
+    $('#checkbox_xt_animate').prop('checked', false);
+    $('#slider_xt').val(0);
+    $('#slider_xt').prop('max', cubedimensionspixel.y-1);
+    $('#label_xt').text('');
+
+    var maxdim = Math.max(cubedimensionspixel.x, cubedimensionspixel.y, cubedimensionspixel.z);
+    cubedimensions = cubedimensionspixel.clone();
+    cubedimensions.divideScalar(maxdim);
+    cubedimensions.t = cubedimensions.z; // Convenience.
+
+    cubematerials = {
+        front:     new THREE.MeshBasicMaterial({ map: cubetextures.front,  side: THREE.DoubleSide }),
+        back:      new THREE.MeshBasicMaterial({ map: cubetextures.back,   side: THREE.DoubleSide }),
+        left:      new THREE.MeshBasicMaterial({ map: cubetextures.left,   side: THREE.DoubleSide }),
+        right:     new THREE.MeshBasicMaterial({ map: cubetextures.right,  side: THREE.DoubleSide }),
+        top:       new THREE.MeshBasicMaterial({ map: cubetextures.top,    side: THREE.DoubleSide }),
+        bottom:    new THREE.MeshBasicMaterial({ map: cubetextures.bottom, side: THREE.DoubleSide }),
+        wireframe: new THREE.LineBasicMaterial({ color: 0xffffff })
+    }
+
+    // Reflect the transparency settings from the UI on the freshly created materials.
+    updateTransparency();
+
+    cube = new THREE.Group();
+
+    // Set up wireframe
+    var points = [];
+    points.push(
+        // Back face:
+        new THREE.Vector3(-cubedimensions.x/2, -cubedimensions.y/2, -cubedimensions.z/2),
+        new THREE.Vector3(+cubedimensions.x/2, -cubedimensions.y/2, -cubedimensions.z/2),
+        new THREE.Vector3(+cubedimensions.x/2, +cubedimensions.y/2, -cubedimensions.z/2),
+        new THREE.Vector3(-cubedimensions.x/2, +cubedimensions.y/2, -cubedimensions.z/2),
+        new THREE.Vector3(-cubedimensions.x/2, -cubedimensions.y/2, -cubedimensions.z/2),
+        
+        // .. connecting line to front face on the bottom left.
+
+        // Front face:
+        new THREE.Vector3(-cubedimensions.x/2, -cubedimensions.y/2, +cubedimensions.z/2),
+        new THREE.Vector3(+cubedimensions.x/2, -cubedimensions.y/2, +cubedimensions.z/2),
+        new THREE.Vector3(+cubedimensions.x/2, +cubedimensions.y/2, +cubedimensions.z/2),
+        new THREE.Vector3(-cubedimensions.x/2, +cubedimensions.y/2, +cubedimensions.z/2),
+        new THREE.Vector3(-cubedimensions.x/2, -cubedimensions.y/2, +cubedimensions.z/2),
+        
+        // at front bottom left.
+        
+        new THREE.Vector3(+cubedimensions.x/2, -cubedimensions.y/2, +cubedimensions.z/2),
+        
+        // at front bottom right. Connect to back.
+        
+        new THREE.Vector3(+cubedimensions.x/2, -cubedimensions.y/2, -cubedimensions.z/2),
+
+        // at back bottom right. Go up to back top right.
+        
+        new THREE.Vector3(+cubedimensions.x/2, +cubedimensions.y/2, -cubedimensions.z/2),
+
+        // Connect to front.
+
+        new THREE.Vector3(+cubedimensions.x/2, +cubedimensions.y/2, +cubedimensions.z/2),
+
+        // at front top right. Go to front top left. 
+
+        new THREE.Vector3(-cubedimensions.x/2, +cubedimensions.y/2, +cubedimensions.z/2),
+
+        // Connect to back.
+
+        new THREE.Vector3(-cubedimensions.x/2, +cubedimensions.y/2, -cubedimensions.z/2)
+    );
+
+    var geometry = new THREE.BufferGeometry().setFromPoints(points);
+    var wireframe = new THREE.Line(geometry, cubematerials.wireframe);
+    wireframe.name = 'wireframe';
+    wireframe.visible = ($('#checkbox_wireframe').prop('checked'));
+
+    cube.add(wireframe);
+
+    var face;
+    var mesh;
+
+    // Front and back (XY-plane)
+    var xy = new THREE.Group();
+    xy.name = 'xy';
+    xy.visible = $('#checkbox_xy_visible').prop('checked'); 
+
+    // Front
+    face = new THREE.PlaneGeometry(cubedimensions.x, cubedimensions.y);
+    mesh = new THREE.Mesh(face, cubematerials.front);
+    mesh.position.z = +cubedimensions.z/2;
+    xy.add(mesh);
+ 
+    // Back
+    face = new THREE.PlaneGeometry(cubedimensions.x, cubedimensions.y);
+    mesh = new THREE.Mesh(face, cubematerials.back);
+    mesh.position.z = -cubedimensions.z/2;
+    xy.add(mesh);
+
+    cube.add(xy);
+
+    // Left and Right (YT-plane)
+    var yt = new THREE.Group();
+    yt.name = 'yt';
+    yt.visible = $('#checkbox_yt_visible').prop('checked'); 
+    
+    // Left
+    face = new THREE.PlaneGeometry(cubedimensions.y, cubedimensions.t);
+    mesh = new THREE.Mesh(face, cubematerials.left);
+    mesh.position.x = -cubedimensions.x/2;
+    mesh.rotateZ(-Math.PI/2);
+    mesh.rotateX(+Math.PI/2);
+    yt.add(mesh);
+
+    // Right
+    face = new THREE.PlaneGeometry(cubedimensions.y, cubedimensions.t);
+    mesh = new THREE.Mesh(face, cubematerials.right);
+    mesh.position.x = +cubedimensions.x/2;
+    mesh.rotateZ(-Math.PI/2);
+    mesh.rotateX(+Math.PI/2);        
+    yt.add(mesh);
+
+    cube.add(yt);
+
+    // Top and Bottom (XT-plane)
+    var xt = new THREE.Group();
+    xt.name = 'xt';
+    xt.visible = $('#checkbox_xt_visible').prop('checked'); 
+
+    // Top
+    face = new THREE.PlaneGeometry(cubedimensions.x, cubedimensions.t);
+    mesh = new THREE.Mesh(face, cubematerials.top);
+    mesh.position.y = +cubedimensions.y/2;
+    mesh.rotateX(+Math.PI/2);
+    xt.add(mesh);
+
+    // Bottom
+    face = new THREE.PlaneGeometry(cubedimensions.x, cubedimensions.t);
+    mesh = new THREE.Mesh(face, cubematerials.bottom);
+    mesh.position.y = -cubedimensions.y/2;
+    mesh.rotateX(+Math.PI/2);
+    xt.add(mesh);
+
+    cube.add(xt);
+
+    // Place cube with corner at the origin instead of centered around it.
+    cube.position.x = cubedimensions.x/2;
+    cube.position.y = cubedimensions.y/2;
+    cube.position.z = -cubedimensions.z/2;
+
+    scene.add(cube);        
+    scene.updateMatrixWorld();
+
+    // Now that we have a cube configure OrbitControls and camera to properly
+    // look at it.
+    controls.target.copy(cube.position);
+    
+    camera.position.copy(cube.position);
+    camera.position.z = camera.position.z+cubedimensions.z*4; 
+            
+    // Set progress on the default loading manager to set up the frame objects
+    // when the frame textures have finished loading.
+    THREE.DefaultLoadingManager.onLoad = buildFrames;
+
+    // Now schedule loading of all the frames for the actual video inside
+    // the cube.
+    cubetextures.xy = [];
+    for(var i=0; i<cubedimensionspixel.t; i++) {
+        var framename = basedir + 'xy/' + i.toString().padStart(4,'0') + '.png';
+        cubetextures.xy.push(new THREE.TextureLoader().load(framename));
+    } 
+
+    cubetextures.xt = [];
+    for(var i=0; i<cubedimensionspixel.y; i++) {
+        var framename = basedir + 'xt/' + i.toString().padStart(4,'0') + '.png';
+        cubetextures.xt.push(new THREE.TextureLoader().load(framename));
+    } 
+
+    cubetextures.yt = [];
+    for(var i=0; i<cubedimensionspixel.x; i++) {
+        var framename = basedir + 'yt/' + i.toString().padStart(4,'0') + '.png';
+        cubetextures.yt.push(new THREE.TextureLoader().load(framename));
+    } 
+
+    requestRender();
+}
+
+function disposeMaterials(o) {
+    if (o instanceof THREE.Material) {
+        o.dispose();
+    } else {
+        for(var material in o) { 
+            disposeMaterials(material);
+        }
+    }
+}
+
+function unloadCube() {
+    scene.remove(cube);
+    cube = null;
+    cubetextures = null;
+
+    // disposeMaterials(cubematerials);
+    cubematerials = null;
+}
+
+function loadCube(name) {
+
+    $('div.loader').show();
+
+    unloadCube();
+
+    basedir = 'data/' + name + '/';
+    
+    // Set progress on the default loading manager to set up the outer
+    // cube when the textures have loaded.
+    THREE.DefaultLoadingManager.onLoad = buildCube;
+
+    // All we need to do is schedule the textures to be loaded. Once they
+    // all have loaded the LoaderManager will call buildCube() and the
+    // rest is set up from there.
+    cubetextures = {
+        front:  new THREE.TextureLoader().load(basedir + 'xy/first.png'),
+        back:   new THREE.TextureLoader().load(basedir + 'xy/last.png'),
+        left:   new THREE.TextureLoader().load(basedir + 'yt/first.png'),
+        right:  new THREE.TextureLoader().load(basedir + 'yt/last.png'),
+        top:    new THREE.TextureLoader().load(basedir + 'xt/first.png'),
+        bottom: new THREE.TextureLoader().load(basedir + 'xt/last.png')
+    }  
+
+}
+
+function resizeRendererToDisplaySize(renderer) {
+    var canvas = renderer.domElement;
+    var width = canvas.clientWidth;
+    var height = canvas.clientHeight;
+    var needResize = (canvas.width !== width) || (canvas.height !== height);
+    if (needResize) {
+        renderer.setSize(width, height, false);
+    }
+    return needResize;
+}
+
+function requestRender() {
+    // Only request an AnimationFrame if none has been requested already
+    // reset in render().
+    if (!renderRequested) {
+        renderRequested = true;
+        requestAnimationFrame(render);
+    }
+}
+
+function render(time) {
+    // console.log("render(" + time + ")");
+    
+    time *= 0.001;
+
+    // Do we need to resize?
+    if (resizeRendererToDisplaySize(renderer)) {
+        var canvas = renderer.domElement;
+        camera.aspect = canvas.clientWidth / canvas.clientHeight;
+        camera.updateProjectionMatrix();
+    }
+        
+    renderer.render(scene, camera);
+    renderRequested = false; // Request has been serviced.
+
+    // For animation:
+    // requestAnimationFrame(render);
+
+    // Give the Orbitcontrols a chance to execute their damping. If they want they can
+    // thus request a next animation frame by firing their change event.
+    controls.update();
+}
+
+var updatingUI = false;
+
+function showFrame(planeobject, frameindex) {
+    if (planeobject) {
+        planeobject.visible = true;
+        planeobject.children[frameindex].visible = true;
+    }
+}
+
+function hideAllFrames() {
+    
+    var o;
+
+    o = scene.getObjectByName('xyframes');
+    if (o) { 
+        o.traverse(function(ob) { ob.visible = false; }); 
+    }
+    
+    o = scene.getObjectByName('xtframes');
+    if (o) { 
+        o.traverse(function(ob) { ob.visible = false; }); 
+    }
+
+    o = scene.getObjectByName('ytframes');
+    if (o) { 
+        o.traverse(function(ob) { ob.visible = false; }); 
+    }
+}
+
+function updateUI(e) {
+    // don't recurse here if we internally update UI controls.
+    if (updatingUI) { return };
+    updatingUI = true;
+
+    // console.log('updateUI()');
+    
+    var axes = scene.getObjectByName('axes', true);
+    if (axes) { axes.visible = $('#checkbox_axes').prop('checked'); }
+
+    var wireframe = scene.getObjectByName('wireframe', true);
+    if (wireframe) { wireframe.visible = $('#checkbox_wireframe').prop('checked'); }
+
+    // Update visibility of ortho planes.
+    var xy = scene.getObjectByName('xy', true);
+    if (xy) { xy.visible = $('#checkbox_xy_visible').prop('checked'); }
+
+    var xt = scene.getObjectByName('xt', true);
+    if (xt) { xt.visible = $('#checkbox_xt_visible').prop('checked'); }
+
+    var yt = scene.getObjectByName('yt', true);
+    if (yt) { yt.visible = $('#checkbox_yt_visible').prop('checked'); }
+
+    // Update transparency of textures.
+    var v = $('#slider_transparenz').val()
+    $('#label_transparenz').text(v + "%");
+    updateTransparency()
+
+    // Disable animation on other planes if a new one is being animated.
+    if (e && e.target.id=='checkbox_xy_animate') {
+        // $('#checkbox_xy_animate').prop('checked', false);
+        $('#checkbox_yt_animate').prop('checked', false);
+        $('#checkbox_xt_animate').prop('checked', false);
+    }
+    
+    if (e && e.target.id=='checkbox_yt_animate') {
+        $('#checkbox_xy_animate').prop('checked', false);
+        // $('#checkbox_yt_animate').prop('checked', false);
+        $('#checkbox_xt_animate').prop('checked', false);
+    }
+
+    if (e && e.target.id=='checkbox_xt_animate') {
+        $('#checkbox_xy_animate').prop('checked', false);
+        $('#checkbox_yt_animate').prop('checked', false);
+        // $('#checkbox_xt_animate').prop('checked', false);
+    }
+    
+    var animating = false;
+
+    var v = $('#slider_xy').val()
+    $('#label_xy').text('#' + v);
+
+    if (e && e.target.id=='slider_xy') {
+        // moved xy-slider. Stop animation.
+        $('#checkbox_xy_animate').prop('checked', false);
+        
+        hideAllFrames();
+        showFrame(scene.getObjectByName('xyframes'), v);        
+    }
+
+    if ($('#checkbox_xy_animate').prop('checked')) {
+        animating = true;
+
+        hideAllFrames();
+        showFrame(scene.getObjectByName('xyframes'), v);
+    }
+
+    var v = $('#slider_xt').val()
+    $('#label_xt').text('#' + v);
+
+    if (e && e.target.id=='slider_xt') {
+        // moved xy-slider. Stop animation.
+        $('#checkbox_xt_animate').prop('checked', false);
+
+        hideAllFrames();
+        showFrame(scene.getObjectByName('xtframes'), v);
+    }
+
+    if ($('#checkbox_xt_animate').prop('checked')) {
+        animating = true;
+
+        hideAllFrames();
+        showFrame(scene.getObjectByName('xtframes'), v);
+    }
+
+    var v = $('#slider_yt').val()
+    $('#label_yt').text('#' + v);
+
+    if (e && e.target.id=='slider_yt') {
+        // moved xy-slider. Stop animation.
+        $('#checkbox_yt_animate').prop('checked', false);
+        
+        hideAllFrames();
+        showFrame(scene.getObjectByName('ytframes'), v);
+    }
+
+    if ($('#checkbox_yt_animate').prop('checked')) {
+        animating = true;
+
+        hideAllFrames();
+        showFrame(scene.getObjectByName('ytframes'), v);        
+    }
+
+    requestRender();
+
+    updatingUI = false;
+
+    if (animating) {
+        if (!animationtimer) {
+            setTimeout(animate, 1000/24);
+        }
+    } else {
+        clearTimeout(animationtimer);
+        animationtimer = null;
+    }
+}
+
+function nextFrame(slider) {
+    var frame = parseInt(slider.val());
+    frame = frame + 1;
+    if (frame > slider.prop('max')) {
+        frame = 0;
+    }
+
+    slider.val(frame);
+
+    updateUI();
+}
+
+function animate() {
+    
+    if ($('#checkbox_xy_animate').prop('checked')) {
+        nextFrame($('#slider_xy'));
+    }
+
+    if ($('#checkbox_xt_animate').prop('checked')) {
+        nextFrame($('#slider_xt'));
+    }
+
+    if ($('#checkbox_yt_animate').prop('checked')) {
+        nextFrame($('#slider_yt'));
+    }
+
+}
+
+function addSample(name) {
+    $('#samples').append("<button id=\"sample_" + name + "\">" + name + "</button>");
+    $('#sample_' + name).click(function() { loadCube(name); });
+}
+
+$(document).ready(function() {
+    // Get the canvas we want to render on
+    var canvas = document.querySelector('#three-canvas');
+        
+    // Create an empty scene
+    scene = new THREE.Scene();
+
+    // Create a camera
+    var fov = 50;
+    var near = 0.1;
+    var far = 10;
+    camera = new THREE.PerspectiveCamera(fov, canvas.clientWidth / canvas.clientHeight, near, far);
+
+    // Create a renderer
+    renderer = new THREE.WebGLRenderer({canvas});
+
+    // Set up Orbitcontrols so we can fly around the scene.
+    controls = new OrbitControls( camera, renderer.domElement );
+    controls.enableDamping = true;
+
+    var axes_length = 1.1; // Cube max dimension is clamped to 1, draw axes a bit longer.
+
+    var axes = new THREE.Group();
+    axes.name = 'axes';
+    axes.visible = ($('#checkbox_axes').prop('checked'))
+
+    // X-Axis indicator
+    var arrow = makeArrow(axes_length, 0x0000ff);
+    arrow.rotateZ(-Math.PI/2);
+    axes.add(arrow);
+ 
+    // Y-Axis indicator
+    arrow = makeArrow(axes_length, 0x00ff00);
+    axes.add(arrow);
+
+    // Z-Axis indicator
+    arrow = makeArrow(axes_length, 0xff0000);
+    arrow.rotateX(-Math.PI/2);
+    axes.add(arrow);
+
+    scene.add(axes);
+
+    // Load a pretty scene background.
+    new THREE.TextureLoader().load('background.png', function(texture) { scene.background = texture; }); 
+
+    addSample('Basketball');
+    addSample('Abstract');
+
+    loadCube('Basketball');
+
+    // start Animation by requesting first frame.
+    // requestAnimationFrame(render);
+
+    // or: Render on demand:
+    controls.addEventListener('change', requestRender);
+    window.addEventListener('resize', requestRender);
+
+    $('#checkbox_axes').on("change", updateUI);
+    $('#checkbox_wireframe').on("change", updateUI);
+    
+    $('#slider_transparenz').on("input change", updateUI);
+    $('#checkbox_xy_visible').on("change", updateUI);
+    $('#checkbox_xt_visible').on("change", updateUI);
+    $('#checkbox_yt_visible').on("change", updateUI);
+
+    $('#slider_xy').on("input change", updateUI);
+    $('#checkbox_xy_animate').on("change", updateUI);
+
+    $('#slider_xt').on("input change", updateUI);
+    $('#checkbox_xt_animate').on("change", updateUI);
+
+    $('#slider_yt').on("input change", updateUI);
+    $('#checkbox_yt_animate').on("change", updateUI);
+
+    window.loadCube = loadCube;
+
+    updateUI();
+})
+
+</script>
+
+</html>
+
