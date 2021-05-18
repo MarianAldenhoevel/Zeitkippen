@@ -20,8 +20,8 @@ def Horz_Vert():
     imageY = 400
     framecount = 400
 
-    base = 40
-    height = 40
+    base = 120
+    height = 120
 
     folder = basefolder + '\\_Horz_Vert'
     if not os.path.exists(folder):

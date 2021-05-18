@@ -114,7 +114,7 @@ try:
 
     maxvideox = 640
     maxvideoy = 640
-    maxvideot = 25*20
+    maxvideot = 640
 
     if (videox > maxvideox):
         raise ValueError("Zu hohe horizontale Auflösung ({0} > {1}".format(videox, maxvideox))
@@ -234,6 +234,7 @@ try:
     (
     ffmpeg
         .input(ytfolder + '/%04d.png', framerate = videoframerate)
+        .filter('transpose', 'clock')
         .output(
             outputfolder + '/yt.mp4', 
             **ffmpeg_output_options

@@ -31,6 +31,9 @@
                     <div class="uirow">
                         <label class="fieldname">Dekoration anzeigen:</label>
                         
+                        <input type="checkbox" id="checkbox_background" name="background" checked></input>
+                        <label">Hintergrund</label>
+                        
                         <input type="checkbox" id="checkbox_axes" name="axes" checked></input>
                         <label">Achsen</label>
                         
@@ -120,6 +123,7 @@ var cubedimensions;
 var cubetextures;
 var cubematerials;
 var cube;
+var background;
 
 var animationtimer;
 
@@ -569,6 +573,14 @@ function updateUI(e) {
 
     // console.log('updateUI()');
     
+    if ($('#checkbox_background').prop('checked')) {
+        console.log('set background');
+        scene.background = background; 
+    } else {
+        console.log('remove background');
+        scene.background = null;
+    }
+
     var axes = scene.getObjectByName('axes', true);
     if (axes) { axes.visible = $('#checkbox_axes').prop('checked'); }
 
@@ -750,7 +762,12 @@ $(document).ready(function() {
     scene.add(axes);
 
     // Load a pretty scene background.
-    new THREE.TextureLoader().load('background.png', function(texture) { scene.background = texture; }); 
+    new THREE.TextureLoader().load('background.png', function(texture) { 
+        background = texture;
+        if ($('#checkbox_background').prop('checked')) {
+            scene.background = texture; 
+        }
+    }); 
 
     loadCube('Basketball');
 
@@ -759,7 +776,7 @@ $(document).ready(function() {
 		loadCube(urlvars.q)
     }
     else {
-        loadCube('Basketball');    
+        loadCube('_Basketball');    
     }
 	
     // start Animation by requesting first frame.
@@ -769,6 +786,7 @@ $(document).ready(function() {
     controls.addEventListener('change', requestRender);
     window.addEventListener('resize', requestRender);
 
+    $('#checkbox_background').on("change", updateUI);
     $('#checkbox_axes').on("change", updateUI);
     $('#checkbox_wireframe').on("change", updateUI);
     
