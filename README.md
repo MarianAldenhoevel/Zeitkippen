@@ -1,8 +1,8 @@
 # Zeitkippen
 This implements the procedure "Zeitkippen" on videos as described by Werner Grosse in his [2006 paper](https://core.ac.uk/download/pdf/14510663.pdf).
 
-* [Basketball](https://zeitkippen.qvwx.de/index.html?q=Basketball)
-* [Abstract](https://zeitkippen.qvwx.de/index.html?q=Abstract)
+* [Basketball](https://zeitkippen.qvwx.de/index.html?q=_Basketball)
+* [Abstract](https://zeitkippen.qvwx.de/index.html?q=_Abstract)
 
 Zeitkippen explores the notion of looking at video as a 3D dataset with two spatial and one temporal coordinates and then asking the question: How would this look if viewed along a different axis.
 
