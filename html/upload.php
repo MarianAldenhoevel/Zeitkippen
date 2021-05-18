@@ -45,6 +45,8 @@ if (!is_dir($target_dir)) {
 	mkdir($target_dir);
 }
 
+file_put_contents( $target_dir . '/email.txt' , $email);
+     
 // Get original file extension
 $path_parts = pathinfo($_FILES['file']['name']);
 
@@ -53,6 +55,9 @@ $destination = $target_dir . "/input." . $path_parts['extension'];
 if (move_uploaded_file($tmp_file, $destination)) {
 
      // Build a commandline for Zeitkippen.py:
+     $cmd = 'python3 ./Zeitkippen.py -ll DEBUG -mt ' . $email . ' -if ' . $target_dir . '/input.mp4 > ' . $target_dir . '/stdout.txt 2> ' . $target_dir . '/stderr.txt';
+     file_put_contents( $target_dir . '/cmd.txt' , $cmd);
+     exec($cmd . ' > /dev/null &');
 
      header('Location: /upload_ok.html');
 	exit;

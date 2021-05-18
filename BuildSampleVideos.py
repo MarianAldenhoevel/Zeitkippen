@@ -13,16 +13,17 @@ import os
 
 basefolder = os.path.dirname(os.path.realpath(__file__)) + '\\html\\data'
 
-def ball_y():
-    print("Creating sample video: Ball-y")
+def Horz_Vert():
+    print("Creating sample video: Horz_Vert")
 
-    imageX = 300
-    imageY = 300
+    imageX = 400
+    imageY = 400
+    framecount = 400
 
-    circleD = 50
-    circleY = -circleD
+    base = 40
+    height = 40
 
-    folder = basefolder + '\\Ball-y'
+    folder = basefolder + '\\_Horz_Vert'
     if not os.path.exists(folder):
         os.makedirs(folder)
 
@@ -35,87 +36,34 @@ def ball_y():
         }
     )
 
-    while circleY < imageY+circleD:
+    x = -height / 2 
+    dx = imageX / framecount
+
+    y = -height / 2
+    dy = imageY / framecount
+
+    for frame in range(framecount):
         im = Image.new('RGB', (imageX, imageY), (255, 255, 255))
         draw = ImageDraw.Draw(im)
 
-        draw.ellipse((150-circleD/2, circleY, 150+circleD/2, circleY+circleD), fill=(0, 0, 255), outline=(0, 0, 0))
+        draw.polygon([
+            (x + frame*dx,          imageY/2 - base/2),
+            (x + frame*dx + height, imageY/2),
+            (x + frame*dx,          imageY/2 + base/2)
+            ], 
+            fill = (0,0,255), outline = (0,0,0)
+        )
+
+        draw.polygon([
+            (imageX/2 - base/2, y + frame*dy),
+            (imageX/2,          y + frame*dy + height),
+            (imageX/2 + base/2, y + frame*dy)
+            ], 
+            fill = (0,255,0), outline = (0,0,0)
+        )
 
         frame = numpy.array(im)
         writer.writeFrame(frame)
-
-        circleY += 2
-
-    writer.close()
-
-
-def ball_x():
-    print("Creating sample video: Ball-x")
-
-    imageX = 300
-    imageY = 300
-
-    circleD = 50
-    circleX = -circleD
-
-    folder = basefolder + '\\Ball-x'
-    if not os.path.exists(folder):
-        os.makedirs(folder)
-
-    outfile = folder + '\\input.mp4'
-    writer = skvideo.io.FFmpegWriter(
-        outfile,
-        outputdict={
-            '-vcodec': 'libx264', 
-            '-b': '30000000'
-        }
-    )
-
-    while circleX < imageX+circleD:
-        im = Image.new('RGB', (imageX, imageY), (255, 255, 255))
-        draw = ImageDraw.Draw(im)
-
-        draw.ellipse((circleX, circleX+circleD, 150-circleD/2, 150+circleD/2), fill=(0, 0, 255), outline=(0, 0, 0))
-
-        frame = numpy.array(im)
-        writer.writeFrame(frame)
-
-        circleX += 2
-
-    writer.close()
-
-def ball_xy():
-    print("Creating sample video: Ball-xy")
-
-    imageX = 300
-    imageY = 300
-
-    circleD = 50
-    circleXY = -circleD
-
-    folder = basefolder + '\\Ball-xy'
-    if not os.path.exists(folder):
-        os.makedirs(folder)
-
-    outfile = folder + '\\input.mp4'
-    writer = skvideo.io.FFmpegWriter(
-        outfile,
-        outputdict={
-            '-vcodec': 'libx264', 
-            '-b': '30000000'
-        }
-    )
-
-    while circleXY < imageX+circleD:
-        im = Image.new('RGB', (imageX, imageY), (255, 255, 255))
-        draw = ImageDraw.Draw(im)
-
-        draw.ellipse((circleXY, circleXY, circleXY+circleD/2, circleXY+circleD/2), fill=(0, 0, 255), outline=(0, 0, 0))
-
-        frame = numpy.array(im)
-        writer.writeFrame(frame)
-
-        circleXY += 2
 
     writer.close()
 
@@ -172,8 +120,5 @@ print(basefolder)
 if not os.path.exists(basefolder):
     os.makedirs(basefolder)
 
-#ball_x()
-#ball_y()
-#ball_xy()
-
+Horz_Vert()
 Abstract()
