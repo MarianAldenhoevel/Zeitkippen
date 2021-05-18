@@ -126,7 +126,7 @@ def Abstract():
     imageY = 300
     framecount = 150
 
-    folder = basefolder + '\\Abstract'
+    folder = basefolder + '\\_Abstract'
     if not os.path.exists(folder):
         os.makedirs(folder)
 

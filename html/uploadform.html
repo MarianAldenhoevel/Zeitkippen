@@ -1,0 +1,72 @@
+<!-- Licensed under a BSD license. See license.html for license -->
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+        <title>Zeitkippen - Upload</title>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>	
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <div id='zeitkippen'>            
+            <form action="upload.php" method="post" enctype="multipart/form-data">
+                <div>
+                    <h1>Zeitkippen - Upload</h1>
+                    <a href="https://marian-aldenhoevel.de/zeitkippen/">Zurück zur Zeitkippen-Seite</a>
+                    <p>
+                        Auf dieser Seite können Sie ein eigenes Video zum Zeitkippen hochladen.
+                    </p>
+                    <p>
+                        Bitte wählen Sie eine lokale Videodate aus, die Dateigröße, Auflösung und Dauer sind beschränkt. Die 
+                        Grenzen werden nach Bedarf von mir festgelegt. Bitte verwenden Sie gegebenenfalls ein Videoschnitt- 
+                        oder Rekodiertool wie Shotcut oder Handbrake um die Dimensionen zu verkleinern. 
+                    </p>
+                    <p>
+                        Die Verarbeitung erfolgt offline. Bitte geben Sie eine gültige EMail-Adresse an, denn nur so können
+                        Sie die Nachricht empfangen, in der sie über Erfolg oder Fehler bei der Verarbeitung informiert werden.
+                        Und <b>nur in der Email erhalten Sie den Link zu ihrer gekippten Videos</b>.
+                    </p>
+                    <p>
+                        Bitte haben Sie Geduld, die Verarbeitung der Daten kann eine Weile dauern, sie erfolgt mit geringer Priorität.
+                        Wenn Sie keine Antwort bekommen prüfen Sie bitte ihren Spamordner bevor Sie ein Video erneut hochladen.
+                    </p>
+                    <p>
+                        Die Ergebnisse werden nur <b>begrenzte Zeit</b> aufbewahrt, bitte laden Sie daher die Daten herunter wenn Sie sie 
+                        archivieren wollen. Sollten Sie ein besonders gelungenes Beispiel haben, freue ich mich über 
+                        <a href="mailto:marian.aldenhoevel@marian-aldenhoevel.de">Mail</a> und nehme die Daten in die permanente Liste auf.
+                    </p>
+                    <p>
+                        Bitte laden Sie keine Videos hoch, die von Dritten urheberrechtlich geschützt sind.
+                    </p>
+                    <p>&nbsp;<br/>&nbsp;</p>
+                </div>
+                <div class="formrow">
+                    <label for="file">Videodatei:</label>
+                    <input type="file" name="file" id="file" accept="video/*" required>
+                </div>
+                <div class="formrow">
+                    <label for="email">Emailadresse:</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="formrow">&nbsp;</div>
+                <div class="formrow">
+                    <label for="submit"></label>
+                    <input type="submit" value="Upload starten" name="submit">
+                </div>
+                <p>&nbsp;<br/>&nbsp;</p>
+                <a href="https://marian-aldenhoevel.de/zeitkippen/">Zurück zur Zeitkippen-Seite</a>
+            </form>
+        </div>
+    </body>
+
+<script>
+    
+$(document).ready(function() {
+
+})
+
+</script>
+
+</html>
+
