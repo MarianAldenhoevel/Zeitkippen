@@ -4,6 +4,24 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
+function safe_filename($input) {
+     $whitelist = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_äöüÄÖÜß';
+     $result = '';
+     
+     $i = 0;
+     while ($i < strlen($input)) {
+          if (strpos($whitelist, $input{$i}, 0) !== false) {
+               $result = $result . $input{$i};
+          } else 
+          {
+               $result = $result . '_';
+          }
+          $i++;
+     }
+
+     return $result;
+}
+
 function rmdir_recursive($folderName) {
      if (is_dir($folderName)) {
           $folderHandle = opendir($folderName);
@@ -17,7 +35,7 @@ function rmdir_recursive($folderName) {
                          unlink($folderName."/".$file);
                     }
                     else {
-                         removeFolder($folderName.'/'.$file);
+                         rmdir_recursive($folderName.'/'.$file);
                     }
                }
           }
@@ -54,8 +72,10 @@ $path_parts = pathinfo($_FILES['file']['name']);
 $destination = $target_dir . "/input." . $path_parts['extension'];
 if (move_uploaded_file($tmp_file, $destination)) {
 
+     $mailsubject = safe_filename($_FILES['file']['name']);
+     
      // Build a commandline for Zeitkippen.py:
-     $cmd = 'python3 ./Zeitkippen.py -ll DEBUG -mt ' . $email . ' -if ' . $target_dir . '/input.mp4 > ' . $target_dir . '/stdout.txt 2> ' . $target_dir . '/stderr.txt';
+     $cmd = 'python3 ./Zeitkippen.py -ll DEBUG -mt ' . $email . ' -ms ' . $mailsubject . ' -if ' . $target_dir . '/input.mp4 > ' . $target_dir . '/stdout.txt 2> ' . $target_dir . '/stderr.txt';
      file_put_contents( $target_dir . '/cmd.txt' , $cmd);
      exec($cmd . ' > /dev/null &');
 

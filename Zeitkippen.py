@@ -53,6 +53,13 @@ parser.add_argument('-mt', '--mail-to',
     metavar = 'flag'
   )
 
+parser.add_argument('-ms', '--mail-subject',
+    action = 'store',
+    help = 'If given this is used to build the mail subject (default: %(default)s)',
+    dest = 'mailsubject',
+    metavar = 'flag'
+  )
+
 args = parser.parse_args()
 
 args.inputfile = os.path.abspath(args.inputfile)
@@ -268,7 +275,12 @@ if args.mailto:
     logger.info('Prepare Mail')
 
     msg = EmailMessage()
-    msg['Subject'] = 'Zeitkippen - ' + args.folderid
+    
+    if (args.mailsubject):
+        msg['Subject'] = 'Zeitkippen - ' + args.mailsubject
+    else:
+        msg['Subject'] = 'Zeitkippen - ' + args.folderid
+    
     msg['From'] = 'zeitkippen@marian-aldenhoevel.de'
     msg['To'] = args.mailto
     msg.set_content(mailbody)
