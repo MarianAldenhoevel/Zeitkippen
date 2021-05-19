@@ -9,6 +9,12 @@ This implements the procedure "Zeitkippen" on videos as described by Werner Gros
 * [Eadweard Muybridge](https://zeitkippen.qvwx.de/index.html?q=_Eadweard_Muybridge)
 * [Space Invaders](https://zeitkippen.qvwx.de/index.html?q=_Space_Invaders)
 
+Samples by [Achim Wagenknecht](http://it-journalist.de/processing/zeitkippen/index.html)
+* [Tram](https://zeitkippen.qvwx.de/index.html?q=_AW_Tram)
+* [Wuppertal](https://zeitkippen.qvwx.de/index.html?q=_AW_Wuppertal)
+* [Sunset](https://zeitkippen.qvwx.de/index.html?q=_AW_Sunset)
+* [Pelikane](https://zeitkippen.qvwx.de/index.html?q=_AW_Pelikane)
+
 Zeitkippen explores the notion of looking at video as a 3D dataset with two spatial and one temporal coordinates and then asking the question: How would this look if viewed along a different axis.
 
 Jan-Eric Harting implemented this in C++ and produced videos accompanying the paper. The film can be watched here:
