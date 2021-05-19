@@ -3,6 +3,8 @@ This implements the procedure "Zeitkippen" on videos as described by Werner Gros
 
 * [Basketball](https://zeitkippen.qvwx.de/index.html?q=_Basketball)
 * [Horz_Vert](https://zeitkippen.qvwx.de/index.html?q=_Horz_Vert)
+* [Rotation](https://zeitkippen.qvwx.de/index.html?q=_Rotation)
+* [Oscillation](https://zeitkippen.qvwx.de/index.html?q=_Oscillation)
 * [Abstract](https://zeitkippen.qvwx.de/index.html?q=_Abstract)
 * [Eadweard Muybridge](https://zeitkippen.qvwx.de/index.html?q=_Eadweard_Muybridge)
 * [Space Invaders](https://zeitkippen.qvwx.de/index.html?q=_Space_Invaders)
